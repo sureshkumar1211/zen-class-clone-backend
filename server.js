@@ -1,17 +1,31 @@
 const express = require("express");
 const cors = require("cors");
 const cookieSession = require("cookie-session");
+const dotenv = require("dotenv");
 
 const app = express();
 
-app.use(cors());
-/* for Angular Client (withCredentials) */
-// app.use(
-//   cors({
-//     credentials: true,
-//     origin: ["http://localhost:8081"],
-//   })
-// );
+// Load environment variables for development purpose
+dotenv.config();
+
+/* for React Client (withCredentials) */
+const corsOptions = {
+  origin: "http://localhost:3000", // Replace with your frontend domain
+  methods: ["GET", "POST", "PUT", "DELETE"],
+};
+app.use(cors(corsOptions));
+
+// Set appropriate headers:
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept"
+  );
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+});
 
 // parse requests of content-type - application/json
 app.use(express.json());
@@ -23,50 +37,25 @@ app.use(
   cookieSession({
     name: "bezkoder-session",
     keys: ["COOKIE_SECRET"], // should use as secret environment variable
-    httpOnly: true,
-    sameSite: 'strict'
+    expires: 24 * 60 * 60 * 1000,
   })
 );
 
-// database
-const db = require("./app/models");
-const Role = db.role;
+// database connection
+require("./app/models");
 
-db.sequelize.sync();
-// force: true will drop the table if it already exists
-// db.sequelize.sync({force: true}).then(() => {
-//   console.log('Drop and Resync Database with { force: true }');
-//   initial();
-// });
-
-// simple route
 app.get("/", (req, res) => {
-  res.json({ message: "Welcome to bezkoder application." });
+  res.json({ message: "Welcome to RekaZen application." });
 });
 
 // routes
 require("./app/routes/auth.routes")(app);
 require("./app/routes/user.routes")(app);
+require("./app/routes/session.routes")(app);
+require("./app/routes/task.routes")(app);
 
 // set port, listen for requests
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
 });
-
-function initial() {
-  Role.create({
-    id: 1,
-    name: "user",
-  });
-
-  Role.create({
-    id: 2,
-    name: "moderator",
-  });
-
-  Role.create({
-    id: 3,
-    name: "admin",
-  });
-}
